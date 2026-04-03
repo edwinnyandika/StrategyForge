@@ -1,0 +1,37 @@
+[
+  {
+    "name": "EMA Crossover with RSI Filter",
+    "archetype": "scalper",
+    "market": "forex",
+    "platform": "pinescript",
+    "extras": "Only trade during London/NY overlap. Add ATR-based stop loss."
+  },
+  {
+    "name": "Bollinger Band Squeeze",
+    "archetype": "swing-trader",
+    "market": "crypto",
+    "platform": "python",
+    "extras": "Include volume confirmation. Exit on band expansion."
+  },
+  {
+    "name": "VWAP Reversal",
+    "archetype": "day-trader",
+    "market": "equities",
+    "platform": "pinescript",
+    "extras": "Only long above VWAP, only short below. Use 15m timeframe."
+  },
+  {
+    "name": "SMC Order Block Entry",
+    "archetype": "swing-trader",
+    "market": "forex",
+    "platform": "mql5",
+    "extras": "Identify order blocks on H4, enter on M15 retest with confluence."
+  },
+  {
+    "name": "Opening Range Breakout",
+    "archetype": "day-trader",
+    "market": "equities",
+    "platform": "python",
+    "extras": "Use first 30 minutes as range. Add gap filter to avoid gap-and-fail."
+  }
+]

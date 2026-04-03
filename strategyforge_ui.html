@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StrategyForge — AI Strategy Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0e11;
+    --surface: #151619;
+    --surface2: #1c1d22;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e6e0;
+    --muted: #6b6a65;
+    --accent: #7c6ff7;
+    --accent2: #4fc4a8;
+    --gold: #e8b84b;
+    --danger: #e05b5b;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,111,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,111,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    margin-bottom: 48px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+  /* Hero */
+  .hero { margin-bottom: 48px; }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 520px; line-height: 1.6; }
+
+  /* Builder card */
+  .builder {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .builder-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .builder-header-dots { display: flex; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #e05b5b; }
+  .dot-y { background: #e8b84b; }
+  .dot-g { background: #4fc4a8; }
+  .builder-header-title { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-left: 8px; }
+
+  .builder-body { padding: 28px 28px 24px; }
+
+  /* Form elements */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  select, input, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6a65' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; font-size: 14px; }
+
+  /* API key field */
+  .api-field {
+    margin-bottom: 20px;
+    background: rgba(124,111,247,0.06);
+    border: 1px solid rgba(124,111,247,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .api-field label { color: var(--accent); }
+  .api-field input { background: transparent; border: none; border-bottom: 1px solid var(--border2); border-radius: 0; padding: 6px 0; font-family: var(--mono); font-size: 13px; width: 100%; }
+  .api-hint { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+  .api-hint a { color: var(--accent); text-decoration: none; }
+
+  /* Generate button */
+  .btn-generate {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+    transition: opacity 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-generate:hover { opacity: 0.9; }
+  .btn-generate:active { transform: scale(0.99); }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Output section */
+  .output-section { display: none; }
+  .output-section.visible { display: block; }
+
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:hover:not(.active) { color: var(--text); background: var(--border); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: auto;
+    position: relative;
+  }
+  .code-block pre {
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+  .copy-btn.copied { color: var(--accent2); border-color: var(--accent2); }
+
+  /* Status / streaming area */
+  .status-bar {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px 0;
+    min-height: 28px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s ease-in-out infinite;
+    display: none;
+  }
+  .status-dot.active { display: block; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Tags row */
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .tag-arch { color: var(--gold); border-color: rgba(232,184,75,0.3); background: rgba(232,184,75,0.06); }
+  .tag-mkt { color: var(--accent2); border-color: rgba(79,196,168,0.3); background: rgba(79,196,168,0.06); }
+  .tag-plat { color: var(--accent); border-color: rgba(124,111,247,0.3); background: rgba(124,111,247,0.06); }
+
+  /* Download button */
+  .btn-download {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color 0.15s;
+  }
+  .btn-download:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 24px 0; margin-top: 64px; }
+  footer p { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚒</div>
+      <div>
+        <div class="logo-text">StrategyForge</div>
+        <div class="logo-sub">AI Strategy Builder v1.0</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h1>Generate trading strategies<br>with <span>AI</span></h1>
+    <p>Describe any strategy. Choose your archetype, market, and platform. Get production-ready code in seconds.</p>
+  </div>
+
+  <!-- Builder -->
+  <div class="builder">
+    <div class="builder-header">
+      <div class="builder-dots">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+      </div>
+      <span class="builder-header-title">strategy_builder.py — interactive</span>
+    </div>
+
+    <div class="builder-body">
+      <!-- API Key -->
+      <div class="api-field">
+        <label>Anthropic API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off"/>
+        <div class="api-hint">Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> — never stored, only used in your browser session.</div>
+      </div>
+
+      <!-- Strategy description -->
+      <div class="field" style="margin-bottom:16px">
+        <label>Strategy Description</label>
+        <textarea id="strategyDesc" placeholder="e.g. EMA crossover with RSI filter and ATR-based stop loss, only during London session"></textarea>
+      </div>
+
+      <!-- Grid selectors -->
+      <div class="form-grid">
+        <div class="field">
+          <label>Trader Archetype</label>
+          <select id="archetype">
+            <option value="scalper">Scalper (1m–5m)</option>
+            <option value="day-trader" selected>Day Trader (15m–1h)</option>
+            <option value="swing-trader">Swing Trader (4h–Daily)</option>
+            <option value="position-trader">Position Trader (Weekly+)</option>
+            <option value="algo-trader">Algo Trader (Fully Auto)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Market</label>
+          <select id="market">
+            <option value="forex" selected>Forex</option>
+            <option value="crypto">Crypto</option>
+            <option value="equities">Equities</option>
+            <option value="commodities">Commodities</option>
+            <option value="futures">Futures</option>
+            <option value="options">Options</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Platform</label>
+          <select id="platform">
+            <option value="pinescript" selected>Pine Script (TradingView)</option>
+            <option value="mql5">MQL5 (MetaTrader 5)</option>
+            <option value="mql4">MQL4 (MetaTrader 4)</option>
+            <option value="python">Python (vectorbt)</option>
+            <option value="thinkscript">ThinkScript (TOS)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Extra Requirements (optional)</label>
+          <input type="text" id="extras" placeholder="e.g. add volume filter, avoid news times"/>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Ready to generate.</span>
+      </div>
+
+      <button class="btn-generate" id="generateBtn" onclick="generateStrategy()">
+        Generate Strategy
+      </button>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="output-section" id="outputSection">
+    <div class="tags" id="tagsRow"></div>
+
+    <div class="tab-bar" id="tabBar"></div>
+
+    <div id="tabPanels"></div>
+  </div>
+
+  <footer>
+    <p>StrategyForge · AI-powered strategy generation · For educational purposes only · Not financial advice</p>
+  </footer>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are StrategyForge's trading strategy engine — an expert in technical analysis, algorithmic trading, and strategy development across all financial markets.
+
+When given a strategy request, generate:
+1. A complete, ready-to-use implementation in the requested platform language
+2. A filled-out strategy.json metadata file  
+3. A README with setup and usage instructions
+
+Rules:
+- Code must be complete, runnable, and well-commented
+- Parameters must include sensible defaults AND optimization ranges
+- Always include entry, exit, stop-loss, and take-profit logic
+- Adapt parameters to the trader archetype (scalper = tighter stops/faster signals, swing = wider stops/slower signals)
+- Adapt to the market (crypto needs wider stops than forex, equities need session filters)
+- Output ONLY valid JSON for strategy.json — no markdown fences
+- For Pine Script: use v5 syntax with //@version=5
+- For MQL5: generate a complete Expert Advisor with OnInit, OnTick, OnDeinit
+- For Python: use vectorbt with a clean backtest() function
+
+Structure your response with these exact section markers:
+---SECTION: STRATEGY_JSON---
+(plain JSON)
+
+---SECTION: CODE---
+(complete platform code)
+
+---SECTION: README---
+(markdown)
+
+---SECTION: OPTIMIZATION_NOTES---
+(top 3 parameters to tune with ranges)`;
+
+const timeframeMap = { "scalper":"1m–5m", "day-trader":"15m–1h", "swing-trader":"4h–Daily", "position-trader":"Weekly+", "algo-trader":"Any (automated)" };
+const sessionMap = { "forex":"London+NY overlap (07:00–12:00 EST)", "crypto":"08:00–22:00 UTC", "equities":"Market open (09:30 EST)", "commodities":"Commodity sessions", "futures":"Regular trading hours", "options":"Market hours, avoid expiry" };
+
+function buildPrompt(desc, archetype, market, platform, extras) {
+  return `Generate a complete StrategyForge strategy for:
+
+STRATEGY: ${desc}
+ARCHETYPE: ${archetype} | TIMEFRAME: ${timeframeMap[archetype]}
+MARKET: ${market} | SESSION: ${sessionMap[market]}
+PLATFORM: ${platform}
+EXTRAS: ${extras || "None"}
+
+Generate all four sections as specified in your instructions.`;
+}
+
+function parseSection(raw, name) {
+  const re = new RegExp(`---SECTION: ${name}---([\\s\\S]*?)(?=---SECTION:|$)`);
+  const m = raw.match(re);
+  return m ? m[1].trim() : "";
+}
+
+function setStatus(msg, active = false) {
+  document.getElementById("statusText").textContent = msg;
+  document.getElementById("statusDot").classList.toggle("active", active);
+}
+
+function makeTab(label, content, id, isFirst) {
+  return { label, content, id, isFirst };
+}
+
+function renderTabs(tabs) {
+  const bar = document.getElementById("tabBar");
+  const panels = document.getElementById("tabPanels");
+  bar.innerHTML = ""; panels.innerHTML = "";
+
+  tabs.forEach((t, i) => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (i === 0 ? " active" : "");
+    btn.textContent = t.label;
+    btn.onclick = () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("panel-" + t.id).classList.add("active");
+    };
+    bar.appendChild(btn);
+
+    const panel = document.createElement("div");
+    panel.className = "tab-panel" + (i === 0 ? " active" : "");
+    panel.id = "panel-" + t.id;
+
+    const block = document.createElement("div");
+    block.className = "code-block";
+    const pre = document.createElement("pre");
+    pre.textContent = t.content;
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.textContent = "copy";
+    copy.onclick = () => {
+      navigator.clipboard.writeText(t.content).then(() => {
+        copy.textContent = "copied!"; copy.classList.add("copied");
+        setTimeout(() => { copy.textContent = "copy"; copy.classList.remove("copied"); }, 1500);
+      });
+    };
+    block.appendChild(pre);
+    block.appendChild(copy);
+    panel.appendChild(block);
+
+    // Download button for code section
+    if (t.id === "code") {
+      const ext = { pinescript: "pine", mql5: "mq5", mql4: "mq4", python: "py", thinkscript: "ts" };
+      const platform = document.getElementById("platform").value;
+      const dl = document.createElement("button");
+      dl.className = "btn-download";
+      dl.innerHTML = "↓ Download ." + (ext[platform] || "txt");
+      dl.onclick = () => {
+        const slug = document.getElementById("strategyDesc").value.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0,40);
+        const blob = new Blob([t.content], { type: "text/plain" });
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = slug + "." + (ext[platform] || "txt"); a.click();
+      };
+      panel.appendChild(dl);
+    }
+
+    panels.appendChild(panel);
+  });
+}
+
+async function generateStrategy() {
+  const apiKey = document.getElementById("apiKey").value.trim();
+  const desc = document.getElementById("strategyDesc").value.trim();
+  const archetype = document.getElementById("archetype").value;
+  const market = document.getElementById("market").value;
+  const platform = document.getElementById("platform").value;
+  const extras = document.getElementById("extras").value.trim();
+
+  if (!apiKey) { setStatus("Error: API key required."); return; }
+  if (!desc) { setStatus("Error: Please describe your strategy."); return; }
+
+  const btn = document.getElementById("generateBtn");
+  btn.disabled = true; btn.textContent = "Generating...";
+  setStatus("Calling Claude API...", true);
+
+  // Show tags
+  const tagsRow = document.getElementById("tagsRow");
+  tagsRow.innerHTML = `
+    <span class="tag tag-arch">${archetype}</span>
+    <span class="tag tag-mkt">${market}</span>
+    <span class="tag tag-plat">${platform}</span>
+  `;
+
+  document.getElementById("outputSection").classList.add("visible");
+
+  let fullText = "";
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: buildPrompt(desc, archetype, market, platform, extras) }],
+        stream: true
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || "API error");
+    }
+
+    setStatus("Streaming response...", true);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.delta?.text || parsed.content?.[0]?.text || "";
+            fullText += delta;
+          } catch {}
+        }
+      }
+      // Live update code tab if visible
+      const codePanel = document.getElementById("panel-code");
+      if (codePanel) {
+        const pre = codePanel.querySelector("pre");
+        if (pre) pre.textContent = parseSection(fullText, "CODE") || "Generating...";
+      }
+    }
+
+    // Parse sections
+    const code = parseSection(fullText, "CODE");
+    const stratJson = parseSection(fullText, "STRATEGY_JSON");
+    const readme = parseSection(fullText, "README");
+    const notes = parseSection(fullText, "OPTIMIZATION_NOTES");
+
+    const tabs = [];
+    if (code) tabs.push({ label: "Code", content: code, id: "code" });
+    if (stratJson) tabs.push({ label: "strategy.json", content: stratJson, id: "json" });
+    if (readme) tabs.push({ label: "README", content: readme, id: "readme" });
+    if (notes) tabs.push({ label: "Optimization", content: notes, id: "notes" });
+    if (!tabs.length) tabs.push({ label: "Raw Output", content: fullText, id: "raw" });
+
+    renderTabs(tabs);
+    setStatus("Generation complete. Copy code or download to save to your repo.", false);
+
+  } catch (err) {
+    setStatus("Error: " + err.message);
+    document.getElementById("tabPanels").innerHTML = `<pre style="color:var(--danger);padding:20px;font-family:var(--mono);font-size:13px">${err.message}</pre>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Generate Strategy";
+  }
+}
+
+// Allow Enter key on input
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.ctrlKey) generateStrategy();
+});
+</script>
+</body>
+</html>
